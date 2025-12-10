@@ -1,0 +1,66 @@
+from flask import Flask, request, redirect, url_for, render_template_string
+from flask_sqlalchemy import SQLAlchemy
+import stripe
+import os
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:pass@localhost/rvn_db'  # Tie to your R3AL3R Postgres
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+stripe.api_key = 'sk_test_YOUR_STRIPE_SECRET_KEY'  # From your Stripe dashboard
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True)
+    subscription = db.Column(db.String(50))  # 'free', 'basic', 'pro'
+
+db.create_all()
+
+# Homepage with tiers
+@app.route('/')
+def home():
+    return render_template_string('''
+    <h1>Realer Virtual Network (RVN)</h1>
+    <p>Subscribe for premium privacy.</p>
+    <ul>
+        <li>Free: Basic stealth - $0/mo <a href="/subscribe/free">Sign Up</a></li>
+        <li>Basic: Multi-device - $4.99/mo <a href="/subscribe/basic">Subscribe</a></li>
+        <li>Pro: Unlimited + extras - $9.99/mo <a href="/subscribe/pro">Subscribe</a></li>
+    </ul>
+    ''')
+
+# Subscription endpoint
+@app.route('/subscribe/<tier>')
+def subscribe(tier):
+    if tier == 'free':
+        # Handle free signup (e.g., email form)
+        return 'Free signup coming soon!'
+    
+    prices = {'basic': 'price_1ABC123STRIPEBASICID', 'pro': 'price_1DEF456STRIPEPROID'}  # Create these in Stripe dashboard
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{'price': prices[tier], 'quantity': 1}],
+        mode='subscription',
+        success_url=url_for('success', _external=True),
+        cancel_url=url_for('home', _external=True),
+    )
+    return redirect(session.url)
+
+@app.route('/success')
+def success():
+    # Webhook would handle fulfillment (e.g., upgrade user in DB)
+    return 'Subscribed! Download premium RVN features.'
+
+# Webhook for Stripe (add security)
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    payload = request.data
+    event = stripe.Event.construct_from(stripe.util.convert_to_dict(payload), stripe.api_key)
+    if event.type == 'checkout.session.completed':
+        # Upgrade user in Postgres
+        pass  # Add logic to tie to R3AL3R Cloud/user
+    return '', 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
