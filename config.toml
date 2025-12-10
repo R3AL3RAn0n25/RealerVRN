@@ -7,10 +7,10 @@ adaptive_rotation  = true
 [inbound]
 port     = 443
 protocol = "vless"
-tls_cert = "/etc/rvn/fullchain.pem"
-tls_key  = "/etc/rvn/privkey.pem"
-uuid     = "YOUR_UUID_HERE"
+tls_cert = "/etc/vrn/fullchain.pem"
+tls_key  = "/etc/vrn/privkey.pem"
+uuid     = "YOUR_UUID_HERE"        # ← auto-replaced on install
 
 [outbound]
 reality_domain = "www.microsoft.com"
-shortid        = "YOUR_SHORTID_HERE"
+shortid        = "YOUR_SHORTID_HERE"   # ← auto-replaced on install
